@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Monitoring System - Real-Time</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0e1a;
+            --bg-card: #151b2e;
+            --bg-card-hover: #1a2234;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-yellow: #f59e0b;
+            --accent-red: #ef4444;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: #1e293b;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.4;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+            animation: gradientShift 20s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.6; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3);
+            animation: logoPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes logoPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .header-text h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.25rem;
+        }
+
+        .header-text p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .connection-badge {
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .connection-badge.connected {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+            border: 1px solid var(--accent-green);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+        }
+
+        .connection-badge.disconnected {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+            animation: pulseRed 2s infinite;
+        }
+
+        @keyframes pulseRed {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .fps-badge {
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent-blue);
+            border: 1px solid var(--accent-blue);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.active {
+            background: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green);
+        }
+
+        .status-dot.inactive {
+            background: var(--accent-red);
+            box-shadow: 0 0 10px var(--accent-red);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .status-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .status-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .status-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-blue);
+            box-shadow: 0 20px 60px rgba(59, 130, 246, 0.2);
+        }
+
+        .status-card:hover::before {
+            opacity: 1;
+        }
+
+        .status-card.alert::before {
+            background: linear-gradient(90deg, var(--accent-green), #34d399);
+            opacity: 1;
+        }
+
+        .status-card.warning::before {
+            background: linear-gradient(90deg, var(--accent-yellow), #fbbf24);
+            opacity: 1;
+            animation: slide 2s linear infinite;
+        }
+
+        .status-card.danger::before {
+            background: linear-gradient(90deg, var(--accent-red), #f87171);
+            opacity: 1;
+            animation: slide 1s linear infinite;
+        }
+
+        @keyframes slide {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .status-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .status-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        .status-card:hover .status-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .status-main {
+            margin-bottom: 1rem;
+        }
+
+        .status-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            line-height: 1;
+            transition: all 0.3s ease;
+        }
+
+        .status-message {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.1), transparent);
+            transform: translate(30%, -30%);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-blue);
+            background: var(--bg-card-hover);
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .metric-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        .metric-badge.good {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+        }
+
+        .metric-badge.warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-yellow);
+        }
+
+        .metric-badge.critical {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+            animation: badgePulse 1s infinite;
+        }
+
+        @keyframes badgePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .metric-change {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .distraction-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .panel-header {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .indicators-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+        }
+
+        .indicator {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        .indicator:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .indicator.active {
+            border-color: var(--accent-red);
+            background: rgba(239, 68, 68, 0.1);
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .indicator-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+            filter: grayscale(100%);
+            opacity: 0.5;
+            transition: all 0.3s ease;
+        }
+
+        .indicator.active .indicator-icon {
+            filter: grayscale(0%);
+            opacity: 1;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .indicator-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .indicator.active .indicator-label {
+            color: var(--accent-red);
+            font-weight: 700;
+        }
+
+        .alerts-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2rem;
+        }
+
+        .alerts-container {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .alerts-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .alerts-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .alerts-container::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 10px;
+        }
+
+        .alert-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 4px solid;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .alert-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(4px);
+        }
+
+        .alert-item.drowsy {
+            border-left-color: var(--accent-yellow);
+        }
+
+        .alert-item.distracted {
+            border-left-color: var(--accent-red);
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            font-size: 0.95rem;
+        }
+
+        .alert-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .alert-badge {
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        .timestamp {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .status-bar {
+                flex-direction: column;
+            }
+
+            .header-text h1 {
+                font-size: 1.5rem;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .status-value {
+                font-size: 2rem;
+            }
+
+            .indicators-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    
+    <div class="container">
+        <header class="header">
+            <div class="logo-section">
+                <div class="logo">🚗</div>
+                <div class="header-text">
+                    <h1>Driver Monitor AI</h1>
+                    <p>Real-time Drowsiness & Distraction Detection</p>
+                </div>
+            </div>
+            <div class="status-bar">
+                <div class="connection-badge" id="connectionBadge">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="connectionText">Connecting...</span>
+                </div>
+                <div class="fps-badge" id="fpsBadge">
+                    <span>📊 FPS: --</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-grid">
+            <div class="status-card" id="drowsinessCard">
+                <div class="status-header">
+                    <span class="status-label">Drowsiness Detection</span>
+                    <div class="status-icon" id="drowsinessIcon">😴</div>
+                </div>
+                <div class="status-main">
+                    <div class="status-value" id="drowsinessValue">Initializing</div>
+                    <div class="status-message" id="drowsinessMsg">
+                        <span>⏳</span>
+                        <span>System starting up...</span>
+                    </div>
+                    <div class="timestamp" id="drowsinessTime">Waiting for data...</div>
+                </div>
+            </div>
+
+            <div class="status-card" id="distractionCard">
+                <div class="status-header">
+                    <span class="status-label">Distraction Detection</span>
+                    <div class="status-icon" id="distractionIcon">👀</div>
+                </div>
+                <div class="status-main">
+                    <div class="status-value" id="distractionValue">Initializing</div>
+                    <div class="status-message" id="distractionMsg">
+                        <span>⏳</span>
+                        <span>System starting up...</span>
+                    </div>
+                    <div class="timestamp" id="distractionTime">Waiting for data...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metrics: removed Event Counters card -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-label">Eye Aspect Ratio</span>
+                    <span class="metric-badge" id="earBadge">Normal</span>
+                </div>
+                <div class="metric-value" id="earValue">0.000</div>
+                <div class="metric-change">CNN Detection Model</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-label">Mouth Aspect Ratio</span>
+                    <span class="metric-badge" id="marBadge">Normal</span>
+                </div>
+                <div class="metric-value" id="marValue">0.000</div>
+                <div class="metric-change">Yawn Detection</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-label">LSTM Probability</span>
+                    <span class="metric-badge" id="lstmBadge">Buffering</span>
+                </div>
+                <div class="metric-value" id="lstmValue">0.000</div>
+                <div class="metric-change">Temporal Analysis</div>
+            </div>
+        </div>
+
+        <!-- Distraction Indicators: removed Looking Down -->
+        <div class="distraction-panel">
+            <div class="panel-header">
+                <span>🎯</span>
+                <span>Distraction Indicators</span>
+            </div>
+            <div class="indicators-grid">
+                <div class="indicator" id="phoneIndicator">
+                    <div class="indicator-icon">📱</div>
+                    <div class="indicator-label">Phone Use</div>
+                </div>
+                <div class="indicator" id="bottleIndicator">
+                    <div class="indicator-icon">🍶</div>
+                    <div class="indicator-label">Drinking</div>
+                </div>
+                <div class="indicator" id="awayIndicator">
+                    <div class="indicator-icon">👁️</div>
+                    <div class="indicator-label">Looking Away</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="alerts-section">
+            <div class="panel-header">
+                <span>📋</span>
+                <span>Recent Alerts</span>
+            </div>
+            <div class="alerts-container" id="alertsContainer">
+                <div class="empty-state">
+                    <div class="empty-state-icon">✅</div>
+                    <div>No alerts - All systems operational</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let reconnectInterval = null;
+        let alertCount = 0;
+        let isConnecting = false;
+        let lastAlertStates = new Map();
+        let reconnectAttempts = 0;
+        const MAX_RECONNECT_DELAY = 10000;
+
+        function connect() {
+            if (isConnecting || (ws && ws.readyState === WebSocket.CONNECTING)) {
+                return;
+            }
+
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+
+            isConnecting = true;
+            console.log(`🔄 Connection attempt ${reconnectAttempts + 1}...`);
+
+            try {
+                ws = new WebSocket('ws://localhost:8765');
+
+                ws.onopen = () => {
+                    console.log('✅ Connected to monitoring system');
+                    isConnecting = false;
+                    reconnectAttempts = 0;
+                    updateConnectionStatus(true);
+                    
+                    if (reconnectInterval) {
+                        clearInterval(reconnectInterval);
+                        reconnectInterval = null;
+                    }
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        updateDashboard(data);
+                    } catch (error) {
+                        console.error('Error parsing message:', error);
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    isConnecting = false;
+                };
+
+                ws.onclose = (event) => {
+                    console.log('⚠️  Disconnected from server');
+                    isConnecting = false;
+                    ws = null;
+                    updateConnectionStatus(false);
+                    
+                    if (!reconnectInterval) {
+                        const delay = Math.min(3000 + (reconnectAttempts * 1000), MAX_RECONNECT_DELAY);
+                        console.log(`🔄 Will reconnect in ${delay/1000}s...`);
+                        reconnectAttempts++;
+                        
+                        reconnectInterval = setInterval(() => {
+                            connect();
+                        }, delay);
+                    }
+                };
+            } catch (error) {
+                console.error('Error creating WebSocket:', error);
+                isConnecting = false;
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const badge = document.getElementById('connectionBadge');
+            const text = document.getElementById('connectionText');
+            const dot = document.getElementById('statusDot');
+
+            if (connected) {
+                badge.className = 'connection-badge connected';
+                text.textContent = 'System Active';
+                dot.className = 'status-dot active';
+            } else {
+                badge.className = 'connection-badge disconnected';
+                text.textContent = 'Reconnecting...';
+                dot.className = 'status-dot inactive';
+            }
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString();
+        }
+
+        function updateDashboard(data) {
+            const m = data.metrics;
+
+            // FPS Display
+            if (data.fps) {
+                document.getElementById('fpsBadge').innerHTML = `<span>📊 FPS: ${data.fps}</span>`;
+            }
+
+            // Drowsiness Status
+            const drowsinessCard = document.getElementById('drowsinessCard');
+            const drowsinessValue = document.getElementById('drowsinessValue');
+            const drowsinessMsg = document.getElementById('drowsinessMsg');
+            const drowsinessIcon = document.getElementById('drowsinessIcon');
+            const drowsinessTime = document.getElementById('drowsinessTime');
+
+            drowsinessCard.className = 'status-card';
+            drowsinessValue.textContent = data.status;
+            drowsinessTime.textContent = `Last update: ${formatTime(data.timestamp)}`;
+
+            if (data.status.includes('Drowsy')) {
+                drowsinessCard.classList.add('danger');
+                drowsinessMsg.innerHTML = '<span>🚨</span><span>High drowsiness detected!</span>';
+                drowsinessIcon.textContent = '😴';
+            } else if (data.status === 'Yawning') {
+                drowsinessCard.classList.add('warning');
+                drowsinessMsg.innerHTML = '<span>⚠️</span><span>Yawning detected - possible fatigue</span>';
+                drowsinessIcon.textContent = '🥱';
+            } else if (data.status === 'Eyes Closed') {
+                drowsinessCard.classList.add('danger');
+                drowsinessMsg.innerHTML = '<span>🚨</span><span>Eyes closed detected!</span>';
+                drowsinessIcon.textContent = '😴';
+            } else {
+                drowsinessCard.classList.add('alert');
+                drowsinessMsg.innerHTML = '<span>✅</span><span>Driver is alert and focused</span>';
+                drowsinessIcon.textContent = '😊';
+            }
+
+            // Distraction Status
+            const distractionCard = document.getElementById('distractionCard');
+            const distractionValue = document.getElementById('distractionValue');
+            const distractionMsg = document.getElementById('distractionMsg');
+            const distractionIcon = document.getElementById('distractionIcon');
+            const distractionTime = document.getElementById('distractionTime');
+
+            distractionCard.className = 'status-card';
+            distractionValue.textContent = data.distractionStatus;
+            distractionTime.textContent = `Last update: ${formatTime(data.timestamp)}`;
+
+            if (data.distractionStatus.includes('PHONE')) {
+                distractionCard.classList.add('danger');
+                distractionMsg.innerHTML = '<span>📱</span><span>Phone usage detected!</span>';
+                distractionIcon.textContent = '📱';
+            } else if (data.distractionStatus.includes('DRINKING')) {
+                distractionCard.classList.add('warning');
+                distractionMsg.innerHTML = '<span>🍶</span><span>Drinking while driving</span>';
+                distractionIcon.textContent = '🍶';
+            } else if (data.distractionStatus.includes('NOT LOOKING FORWARD')) {
+                distractionCard.classList.add('danger');
+                distractionMsg.innerHTML = '<span>👁️</span><span>Eyes off the road!</span>';
+                distractionIcon.textContent = '👁️';
+            } else {
+                distractionCard.classList.add('alert');
+                distractionMsg.innerHTML = '<span>✅</span><span>Safe driving behavior</span>';
+                distractionIcon.textContent = '✅';
+            }
+
+            // Metrics - EAR
+            document.getElementById('earValue').textContent = m.ear.toFixed(3);
+            const earBadge = document.getElementById('earBadge');
+            earBadge.className = 'metric-badge';
+            if (m.ear < 0.22) {
+                earBadge.classList.add('critical');
+                earBadge.textContent = '⚠️ Low';
+            } else {
+                earBadge.classList.add('good');
+                earBadge.textContent = '✅ Normal';
+            }
+
+            // Metrics - MAR
+            document.getElementById('marValue').textContent = m.mar.toFixed(3);
+            const marBadge = document.getElementById('marBadge');
+            marBadge.className = 'metric-badge';
+            if (m.mar > 0.18) {
+                marBadge.classList.add('warning');
+                marBadge.textContent = '⚠️ High';
+            } else {
+                marBadge.classList.add('good');
+                marBadge.textContent = '✅ Normal';
+            }
+
+            // Metrics - LSTM
+            document.getElementById('lstmValue').textContent = m.lstmDrowsy.toFixed(3);
+            const lstmBadge = document.getElementById('lstmBadge');
+            lstmBadge.className = 'metric-badge';
+            if (!m.lstmReady) {
+                lstmBadge.classList.add('warning');
+                lstmBadge.textContent = 'Buffering';
+            } else if (m.lstmDrowsy > 0.6) {
+                lstmBadge.classList.add('critical');
+                lstmBadge.textContent = '⚠️ Drowsy';
+            } else {
+                lstmBadge.classList.add('good');
+                lstmBadge.textContent = '✅ Alert';
+            }
+
+            // Distraction Indicators — lookingDown removed
+            document.getElementById('phoneIndicator').className = m.hasPhone ? 'indicator active' : 'indicator';
+            document.getElementById('bottleIndicator').className = m.hasBottle ? 'indicator active' : 'indicator';
+            document.getElementById('awayIndicator').className = m.lookingAway ? 'indicator active' : 'indicator';
+
+            // Add alerts when state changes
+            const currentState = `${data.status}-${data.distractionStatus}`;
+            const lastState = lastAlertStates.get('main');
+            
+            if (currentState !== lastState) {
+                if (data.status !== 'Alert' || data.distractionStatus !== '✅ SAFE DRIVING') {
+                    addAlert(data.status, data.distractionStatus, data.timestamp);
+                }
+                lastAlertStates.set('main', currentState);
+            }
+        }
+
+        function addAlert(drowsinessStatus, distractionStatus, timestamp) {
+            const container = document.getElementById('alertsContainer');
+            
+            if (container.querySelector('.empty-state')) {
+                container.innerHTML = '';
+            }
+
+            const time = formatTime(timestamp);
+            let alertClass, alertTitle, badgeText, badgeStyle;
+
+            if (distractionStatus.includes('PHONE')) {
+                alertClass = 'distracted';
+                alertTitle = '📱 Phone Detected!';
+                badgeText = 'CRITICAL';
+                badgeStyle = 'background: rgba(239,68,68,0.2); color: #ef4444;';
+            } else if (distractionStatus.includes('DRINKING')) {
+                alertClass = 'distracted';
+                alertTitle = '🍶 Drinking Detected';
+                badgeText = 'WARNING';
+                badgeStyle = 'background: rgba(245,158,11,0.2); color: #f59e0b;';
+            } else if (distractionStatus.includes('NOT LOOKING FORWARD')) {
+                alertClass = 'distracted';
+                alertTitle = '👁️ Eyes Off Road!';
+                badgeText = 'WARNING';
+                badgeStyle = 'background: rgba(239,68,68,0.2); color: #ef4444;';
+            } else if (drowsinessStatus.includes('Drowsy')) {
+                alertClass = 'drowsy';
+                alertTitle = '😴 Drowsiness Alert';
+                badgeText = 'DROWSY';
+                badgeStyle = 'background: rgba(245,158,11,0.2); color: #f59e0b;';
+            } else if (drowsinessStatus === 'Yawning') {
+                alertClass = 'drowsy';
+                alertTitle = '🥱 Yawning Detected';
+                badgeText = 'FATIGUE';
+                badgeStyle = 'background: rgba(245,158,11,0.2); color: #f59e0b;';
+            } else if (drowsinessStatus === 'Eyes Closed') {
+                alertClass = 'drowsy';
+                alertTitle = '😴 Eyes Closed';
+                badgeText = 'CRITICAL';
+                badgeStyle = 'background: rgba(239,68,68,0.2); color: #ef4444;';
+            } else {
+                return;
+            }
+
+            alertCount++;
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert-item ${alertClass}`;
+            alertDiv.innerHTML = `
+                <div class="alert-content">
+                    <div class="alert-title">${alertTitle}</div>
+                    <div class="alert-time">${time} • Alert #${alertCount}</div>
+                </div>
+                <div class="alert-badge" style="${badgeStyle}">${badgeText}</div>
+            `;
+
+            container.insertBefore(alertDiv, container.firstChild);
+
+            // Keep only last 20 alerts
+            while (container.children.length > 20) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (reconnectInterval) {
+                clearInterval(reconnectInterval);
+            }
+            if (ws) {
+                ws.close();
+            }
+        });
+
+        // Initialize connection
+        console.log('🚀 Initializing dashboard...');
+        connect();
+    </script>
+</body>
+</html>
