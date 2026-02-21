@@ -126,8 +126,7 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 ```
 models/
 ├── eyes_model.h5       ← already included in the repo
-├── yawn_model.h5       ← already included in the repo
-└── best_model.pth      ← download this from the link above
+└──yawn_model.h5       ← already included in the repo
 ```
 
 **6. Update model paths in `main.py`**
